@@ -4,7 +4,7 @@ import './index.css';
 import Layout from './components/Layout/Layout';
 import { CartProvider } from './Context/CartContext';
 import ScrollToTop from "./components/ScrollToTop";
-import PageLoader from "./components/UI/PageLoader";
+import PageLoader from "./components/ui/PageLoader";
 import {
   HomeSkeleton,
   ShopSkeleton,
@@ -17,7 +17,7 @@ import {
   CheckoutSkeleton,
   TrackOrderSkeleton,
   TextPageSkeleton,
-} from "./components/UI/Skeleton";
+} from "./components/ui/Skeleton";
 
 // Admin — small bundle, keep eager
 import AdminLogin     from './Pages/Admin/AdminLogin';
@@ -34,19 +34,19 @@ const AdminScrolling  = lazy(() => import('./Pages/Admin/AdminScrollingText'));
 
 // Public pages — lazy loaded
 const Home          = lazy(() => import('./Pages/Home'));
-const Shop      = lazy(() => import('./Pages/Shop'));
-const ShopAll       = lazy(() => import('./Components/products/ShopAll'));
-const AboutUs       = lazy(() => import('./Pages/About'));
-const ContactUs     = lazy(() => import('./Pages/Contact'));
-const Reviews       = lazy(() => import('./Pages/Reviews'));
-const ServiceDetail = lazy(() => import('./Pages/Service'));
-const Cart          = lazy(() => import('./Components/products/Cart'));
-const ProductPage   = lazy(() => import('./Components/products/ProductPage'));
-const CheckoutPage  = lazy(() => import('./Components/products/CheckoutPage'));
-const PrivacyPolicy = lazy(() => import('./Pages/PrivacyPolicy'));
-const TermsOfUse    = lazy(() => import('./Pages/TermsOfUse'));
-const TrackOrder    = lazy(() => import('./Components/products/TrackOrder'));
-const NotFound      = lazy(() => import('./Pages/NotFound'));
+const Shop           = lazy(() => import('./Pages/Shop'));
+const ShopAll        = lazy(() => import('./components/products/ShopAll'));
+const AboutUs        = lazy(() => import('./Pages/About'));
+const ContactUs      = lazy(() => import('./Pages/Contact'));
+const Reviews        = lazy(() => import('./Pages/Reviews'));
+const ServiceDetail  = lazy(() => import('./Pages/Service'));
+const Cart = lazy(() => import('./components/products/Cart'));
+const CheckoutPage  = lazy(() => import('./components/products/CheckoutPage'));
+const ProductPage    = lazy(() => import('./components/products/ProductPage'));
+const PrivacyPolicy  = lazy(() => import('./Pages/PrivacyPolicy'));
+const TermsOfUse     = lazy(() => import('./Pages/TermsOfUse'));
+const TrackOrder     = lazy(() => import('./components/products/TrackOrder'));
+const NotFound       = lazy(() => import('./Pages/NotFound'));
 
 const AdminLoader = () => <PageLoader show={true} />;
 
@@ -66,7 +66,7 @@ export default function App() {
           <Route path="/admin/scrolling-text" element={<ProtectedRoute><Suspense fallback={<AdminLoader />}><AdminScrolling /></Suspense></ProtectedRoute>} />
           <Route path="/admin/users"          element={<ProtectedRoute><Suspense fallback={<AdminLoader />}><AdminUsers /></Suspense></ProtectedRoute>} />
 
-{/* ── Public routes ── */}
+          {/* ── Public routes ── */}
           <Route path="/*" element={
             <Layout>
               <Routes>
@@ -106,13 +106,13 @@ export default function App() {
                 <Route path="/terms" element={
                   <Suspense fallback={<TextPageSkeleton />}><TermsOfUse /></Suspense>
                 } />
-                 <Route path="/track-order" element={
+                <Route path="/track-order" element={
                   <Suspense fallback={<TrackOrderSkeleton />}><TrackOrder /></Suspense>
                 } />
                 <Route path="*" element={
                   <Suspense fallback={null}><NotFound /></Suspense>
                 } />
-                </Routes>
+              </Routes>
             </Layout>
           } />
         </Routes>
