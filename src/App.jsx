@@ -2,7 +2,7 @@ import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import './index.css';
 import Layout from './components/Layout/Layout';
-import { CartProvider } from './context/CartContext';
+import { CartProvider } from './Context/CartContext';
 import ScrollToTop from "./components/ScrollToTop";
 import PageLoader from "./components/UI/PageLoader";
 import {
