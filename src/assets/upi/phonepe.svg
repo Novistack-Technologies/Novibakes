@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 110 110">
+  <!-- Purple circle background -->
+  <circle cx="55" cy="55" r="55" fill="#6739B7"/>
+  <!-- Devanagari पे character (PhonePe symbol) in white -->
+  <text x="55" y="72" text-anchor="middle"
+    font-family="Noto Sans Devanagari, Arial Unicode MS, sans-serif"
+    font-size="62" font-weight="700" fill="white">पे</text>
+</svg>

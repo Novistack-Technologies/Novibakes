@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 110 110">
+  <!-- Cyan top half background -->
+  <rect x="0" y="0" width="110" height="55" rx="18" fill="#00BAF2"/>
+  <!-- Dark blue bottom half -->
+  <rect x="0" y="55" width="110" height="55" rx="18" fill="#002970"/>
+  <!-- Overlap fix for middle -->
+  <rect x="0" y="45" width="110" height="20" fill="#002970"/>
+  <rect x="0" y="45" width="110" height="10" fill="#00BAF2"/>
+  <!-- White circle -->
+  <circle cx="55" cy="55" r="34" fill="white"/>
+  <!-- Paytm text inside circle -->
+  <text x="55" y="51" text-anchor="middle" font-family="Arial Black, Arial" font-weight="900" font-size="13" fill="#002970">Pay</text>
+  <text x="55" y="66" text-anchor="middle" font-family="Arial Black, Arial" font-weight="900" font-size="13">
+    <tspan fill="#002970">t</tspan><tspan fill="#00BAF2">m</tspan>
+  </text>
+</svg>

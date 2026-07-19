@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 110 110">
+  <!-- Orange arrow (back/left) -->
+  <polygon points="15,95 50,5 68,55 50,105" fill="#F7941D"/>
+  <!-- Green arrow (front/right) — chevron shape with notch -->
+  <polygon points="42,5 80,5 98,55 80,105 42,105 60,55" fill="#2D7A35"/>
+</svg>
