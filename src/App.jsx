@@ -35,17 +35,17 @@ const AdminScrolling  = lazy(() => import('./Pages/Admin/AdminScrollingText'));
 // Public pages — lazy loaded
 const Home          = lazy(() => import('./Pages/Home'));
 const Shop      = lazy(() => import('./Pages/Shop'));
-const ShopAll       = lazy(() => import('./components/products/ShopAll'));
+const ShopAll       = lazy(() => import('./Components/products/ShopAll'));
 const AboutUs       = lazy(() => import('./Pages/About'));
 const ContactUs     = lazy(() => import('./Pages/Contact'));
 const Reviews       = lazy(() => import('./Pages/Reviews'));
 const ServiceDetail = lazy(() => import('./Pages/Service'));
-const Cart          = lazy(() => import('./components/products/Cart'));
-const ProductPage   = lazy(() => import('./components/products/ProductPage'));
-const CheckoutPage  = lazy(() => import('./components/products/CheckoutPage'));
+const Cart          = lazy(() => import('./Components/products/Cart'));
+const ProductPage   = lazy(() => import('./Components/products/ProductPage'));
+const CheckoutPage  = lazy(() => import('./Components/products/CheckoutPage'));
 const PrivacyPolicy = lazy(() => import('./Pages/PrivacyPolicy'));
 const TermsOfUse    = lazy(() => import('./Pages/TermsOfUse'));
-const TrackOrder    = lazy(() => import('./components/products/TrackOrder'));
+const TrackOrder    = lazy(() => import('./Components/products/TrackOrder'));
 const NotFound      = lazy(() => import('./Pages/NotFound'));
 
 const AdminLoader = () => <PageLoader show={true} />;
