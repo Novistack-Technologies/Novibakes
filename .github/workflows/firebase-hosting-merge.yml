@@ -39,9 +39,9 @@ jobs:
           VITE_BAKERY_NAME: ${{ secrets.VITE_BAKERY_NAME }}
 
       - name: Deploy to Firebase Hosting
-        uses: FirebaseExtended/action-deploy-firebase@v0
+        uses: FFirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_NOVIBAKES }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           channelId: live
           projectId: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
