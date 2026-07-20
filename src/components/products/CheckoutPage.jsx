@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import QRCode from "qrcode";
 
-import { useCart } from "../../context/CartContext";
+import { useCart } from "../../Context/CartContext";
 import { setDoc, doc } from "../../lib/firebase";
 import { db } from "../../lib/firebase";
 import { getDocs, query, collection, where } from "firebase/firestore";
