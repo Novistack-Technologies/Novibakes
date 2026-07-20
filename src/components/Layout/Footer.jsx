@@ -121,9 +121,18 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="border-t border-white/10 py-4">
-        <div className="text-center">
+<div className="border-t border-white/10 py-4">
+        <div className="flex items-center justify-center gap-2 flex-wrap text-center">
           <p className="text-white/40 text-sm">© {currentYear} {bakeryName}. All rights reserved.</p>
+          <span className="text-white/20 text-sm">·</span>
+          <a
+            href="https://novistack.in"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-white/30 text-xs hover:text-white/60 transition-colors"
+          >
+            Powered by <span className="font-semibold text-white/50">NoviStack Technologies</span>
+          </a>
         </div>
       </div>
     </footer>

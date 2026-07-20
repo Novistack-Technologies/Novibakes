@@ -24,7 +24,7 @@ const MORE_NAV    = NAV.slice(4);
 const PAGE_TITLES = Object.fromEntries(NAV.map(n => [n.to, n.label]));
 
 function useCurrentUser() {
-  const [user, setUser]           = useState(auth.currentUser);
+  const [user, setUser]               = useState(auth.currentUser);
   const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
@@ -157,7 +157,6 @@ export default function AdminLayout({ children }) {
   const [showChangePwd, setShowChangePwd] = useState(false);
   const [loggingOut, setLoggingOut]       = useState(false);
 
-  // ── Auth guard: redirect to login if session is gone ──
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/admin/login", { replace: true });
@@ -178,7 +177,6 @@ export default function AdminLayout({ children }) {
 
   useEffect(() => { setMoreOpen(false); }, [location.pathname]);
 
-  // ── Fix: setLoggingOut(false) BEFORE navigate so state update hits mounted component ──
   const logout = async () => {
     if (loggingOut) return;
     setLoggingOut(true);
@@ -189,7 +187,7 @@ export default function AdminLayout({ children }) {
     } finally {
       localStorage.removeItem("nb_admin");
       sessionStorage.removeItem("nb_admin");
-      setLoggingOut(false);        // ← set state before navigating away
+      setLoggingOut(false);
       navigate("/admin/login");
     }
   };
@@ -199,7 +197,6 @@ export default function AdminLayout({ children }) {
     weekday: "short", day: "numeric", month: "short", year: "numeric",
   });
 
-  // Show nothing while Firebase resolves auth state
   if (authLoading) {
     return (
       <div className="min-h-screen bg-[#f8f9fb] flex items-center justify-center">
@@ -213,6 +210,7 @@ export default function AdminLayout({ children }) {
 
       {/* ── Mobile top bar ── */}
       <header className="md:hidden fixed top-0 inset-x-0 z-40 bg-white border-b border-gray-100 flex items-center justify-between px-4 h-14 shadow-sm">
+        {/* Brand */}
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#ec4899" }}>
             <CakeSlice className="w-3.5 h-3.5 text-white" />
@@ -222,21 +220,35 @@ export default function AdminLayout({ children }) {
             <p className="text-slate-400 text-[10px]">{pageTitle}</p>
           </div>
         </div>
-        <button
-          onClick={logout}
-          disabled={loggingOut}
-          className="text-slate-400 hover:text-red-500 p-1.5 transition-colors disabled:opacity-50"
-        >
-          {loggingOut
-            ? <Loader2 className="w-4 h-4 animate-spin" />
-            : <LogOut className="w-4 h-4" />
-          }
-        </button>
+
+        {/* Username + logout */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <div
+              className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
+              style={{ backgroundColor: "#ec4899" }}
+            >
+              {displayName.charAt(0).toUpperCase()}
+            </div>
+            <span className="text-xs font-semibold text-slate-700 max-w-[72px] truncate">
+              {displayName}
+            </span>
+          </div>
+          <button
+            onClick={logout}
+            disabled={loggingOut}
+            className="text-slate-400 hover:text-red-500 p-1.5 transition-colors disabled:opacity-50"
+          >
+            {loggingOut
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : <LogOut className="w-4 h-4" />
+            }
+          </button>
+        </div>
       </header>
 
       {/* ── Desktop sidebar ── */}
       <aside className={`hidden md:flex fixed top-0 left-0 h-full flex-col z-40 bg-[#111827] transition-all duration-300 shadow-xl ${collapsed ? "w-16" : "w-56"}`}>
-
         <div className={`flex flex-col items-center border-b border-white/10 shrink-0 ${collapsed ? "py-4 px-2 gap-1" : "py-5 px-4 gap-2"}`}>
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center bg-[#ec4899] shadow-lg shadow-pink-900/40 shrink-0">
             <CakeSlice className="w-5 h-5 text-white" />
@@ -288,14 +300,12 @@ export default function AdminLayout({ children }) {
 
       {/* ── Content area ── */}
       <div className={`transition-all duration-300 min-h-screen flex flex-col pt-14 md:pt-0 pb-20 md:pb-0 ${collapsed ? "md:ml-16" : "md:ml-56"}`}>
-
         <header className="hidden md:flex items-center justify-between bg-white border-b border-gray-100 px-6 h-14 shadow-sm shrink-0 sticky top-0 z-30">
           <div className="flex items-center gap-1.5 text-xs text-slate-400">
             <span className="font-medium text-slate-500">NoviBakes</span>
             <span>›</span>
             <span className="font-semibold text-slate-800">{pageTitle}</span>
           </div>
-
           <div className="flex items-center gap-3">
             <div className="hidden lg:flex items-center bg-gray-50 border border-gray-100 rounded-xl px-3 py-1.5">
               <span className="text-xs text-slate-500 font-medium">{today}</span>

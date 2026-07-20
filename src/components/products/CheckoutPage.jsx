@@ -9,8 +9,9 @@ import {
 import QRCode from "qrcode";
 
 import { useCart } from "../../context/CartContext";
-import { setDoc,doc } from "../../lib/firebase";
+import { setDoc, doc } from "../../lib/firebase";
 import { db } from "../../lib/firebase";
+import { getDocs, query, collection, where } from "firebase/firestore";
 
 import gpayLogo    from "../../assets/upi/Gpay.jpg";
 import phonepeLogo from "../../assets/upi/PhonePE.jpg";
@@ -24,6 +25,30 @@ const BAKERY_NAME = import.meta.env.VITE_BAKERY_NAME;
 
 const UPI_LOGO_MAP = { gpay: gpayLogo, phonepe: phonepeLogo, paytm: paytmLogo, bhim: bhimLogo };
 
+// ── UPI UTR validation rules ─────────────────────────────────────────────
+// UPI UTR (Reference Number / RRN) is always a 12-digit numeric value.
+
+const UTR_PATTERNS = {
+  gpay: {
+    regex: /^\d{12}$/,
+    hint: "12-digit UPI UTR (e.g. 123456789012)",
+  },
+
+  phonepe: {
+    regex: /^\d{12}$/,
+    hint: "12-digit UPI UTR (e.g. 123456789012)",
+  },
+
+  paytm: {
+    regex: /^\d{12}$/,
+    hint: "12-digit UPI UTR (e.g. 123456789012)",
+  },
+
+  bhim: {
+    regex: /^\d{12}$/,
+    hint: "12-digit UPI UTR (e.g. 123456789012)",
+  },
+};
 const UpiLogo = ({ id, mini = false }) => {
   const src = UPI_LOGO_MAP[id];
   if (!src) return null;
@@ -201,22 +226,32 @@ const CheckoutPage = () => {
   };
 
   const validate = () => {
-    const e = {};
-    if (!form.name.trim())    e.name    = "Full name is required";
-    if (!form.phone.trim())   e.phone   = "Phone number is required";
-    else if (!/^\+?[\d\s-]{8,15}$/.test(form.phone.trim())) e.phone = "Enter a valid phone number";
-    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Enter a valid email";
-    if (!form.address.trim()) e.address = "Address is required";
-    if (!form.city.trim())    e.city    = "City is required";
-    if (form.pincode && !/^\d{6}$/.test(form.pincode)) e.pincode = "Enter a valid 6-digit pincode";
-    if (!form.deliveryDate)   e.deliveryDate = "Delivery date is required";
-    if (!form.deliveryTime)   e.deliveryTime = "Delivery time is required";
-    if (!form.paymentMethod)  e.paymentMethod = "Please select a payment method";
-    if (needsTransactionId && !form.transactionId.trim()) e.transactionId = "Transaction ID is required";
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  };
+  const e = {};
+  if (!form.name.trim())    e.name    = "Full name is required";
+  if (!form.phone.trim())   e.phone   = "Phone number is required";
+  else if (!/^\+?[\d\s-]{8,15}$/.test(form.phone.trim())) e.phone = "Enter a valid phone number";
+  if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Enter a valid email";
+  if (!form.address.trim()) e.address = "Address is required";
+  if (!form.city.trim())    e.city    = "City is required";
+  if (form.pincode && !/^\d{6}$/.test(form.pincode)) e.pincode = "Enter a valid 6-digit pincode";
+  if (!form.deliveryDate)   e.deliveryDate = "Delivery date is required";
+  if (!form.deliveryTime)   e.deliveryTime = "Delivery time is required";
+  if (!form.paymentMethod)  e.paymentMethod = "Please select a payment method";
 
+  if (needsTransactionId) {
+    const txn     = form.transactionId.trim();
+    const appName = UPI_APPS.find((a) => a.id === form.paymentMethod)?.name;
+    const rule    = UTR_PATTERNS[form.paymentMethod];
+    if (!txn) {
+      e.transactionId = "Transaction ID is required";
+    } else if (rule && !rule.regex.test(txn)) {
+      e.transactionId = `Invalid ${appName} transaction ID — expected: ${rule.hint}`;
+    }
+  }
+
+  setErrors(e);
+  return Object.keys(e).length === 0;
+};
   const buildMessage = () => {
     const now = new Date().toLocaleString("en-IN", { dateStyle: "long", timeStyle: "short" });
     const selectedApp = UPI_APPS.find((a) => a.id === form.paymentMethod);
@@ -280,7 +315,29 @@ const CheckoutPage = () => {
 
     const cleanForm = getSanitizedForm(form);
     setForm((p) => ({ ...p, ...cleanForm })); // keep state in sync so buildMessage() uses the same clean values
-
+// ── Duplicate UTR check (async, before saving) ──────────────────────────
+    if (cleanForm.transactionId) {
+      try {
+        const dupSnap = await getDocs(
+          query(collection(db, "orders"), where("transactionId", "==", cleanForm.transactionId))
+        );
+        if (!dupSnap.empty) {
+          setErrors((p) => ({
+            ...p,
+            transactionId:
+              "This transaction ID has already been used for another order. Please check and re-enter.",
+          }));
+          txnInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+          txnInputRef.current?.focus();
+          isSubmittingRef.current = false;
+          setSending(false);
+          return;
+        }
+      } catch (err) {
+        // Non-fatal: if the network check fails, proceed to avoid blocking the user
+        console.warn("Duplicate UTR check failed:", err);
+      }
+    }
     const newOrderId = generateOrderId();
     setOrderId(newOrderId);
 
@@ -466,8 +523,9 @@ const CheckoutPage = () => {
             >
               <h2 className="text-lg font-black text-slate-800 mb-1">Order Placed! 🎉</h2>
               <p className="text-xs text-slate-500 mb-4 leading-relaxed">
-                We've received your order. Tap <span className="font-semibold text-slate-700">Notify Us on WhatsApp</span> so we can start preparing it and keep you posted.
-              </p>
+                We've received your order. Tap{" "}
+                <span className="font-semibold text-slate-700">Notify Us on WhatsApp</span>{" "}
+                so we can start preparing it and keep you posted.              </p>
             </motion.div>
 
             {/* Order ID + Total — compact side-by-side */}
@@ -844,7 +902,7 @@ const CheckoutPage = () => {
               </AnimatePresence>
             </motion.div>
 
-            {/* Transaction ID — standalone card, outside payment section */}
+            {/* Transaction ID */}
             <AnimatePresence>
               {needsTransactionId && (
                 <motion.div
@@ -871,6 +929,12 @@ const CheckoutPage = () => {
                         ? "Open your UPI app → transaction history → copy the 12-digit UTR number."
                         : "Complete payment first, then paste your UPI transaction ID here."}
                     </p>
+{/* Per-app format hint */}
+                    {form.paymentMethod && UTR_PATTERNS[form.paymentMethod] && (
+                      <p className="text-[11px] text-slate-400 font-mono mb-4">
+                        Format: {UTR_PATTERNS[form.paymentMethod].hint}
+                      </p>
+                    )}
                     <label className="block text-xs font-semibold text-gray-600 mb-1.5">
                       Transaction ID / UTR <span className="text-red-400">*</span>
                     </label>
@@ -899,11 +963,11 @@ const CheckoutPage = () => {
             <div className="lg:hidden">
               <button
                 type="submit" disabled={sending || orderPlaced}
-                className="w-full bg-[#25D366] hover:bg-[#1eb358] disabled:opacity-60 text-white py-4 rounded-full font-semibold flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 text-sm"
+                className="w-full bg-[#ec4899] hover:bg-[#db2777] disabled:opacity-60 text-white py-4 rounded-full font-semibold flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 text-sm"
               >
                 {sending
                   ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending to WhatsApp…</>
-                  : <><MessageCircle className="w-4 h-4" /> Send Order via WhatsApp</>
+                  : <><MessageCircle className="w-4 h-4" />Place your order</>
                 }
               </button>
             </div>
@@ -990,11 +1054,11 @@ const CheckoutPage = () => {
               {/* Submit — desktop */}
               <button
                 type="submit" disabled={sending || orderPlaced}
-                className="hidden lg:flex w-full mt-5 bg-[#25D366] hover:bg-[#1eb358] disabled:opacity-60 text-white py-3.5 rounded-full font-semibold items-center justify-center gap-2 transition-all shadow-md active:scale-95 text-sm"
+                className="hidden lg:flex w-full mt-5 bg-[#ec4899] hover:bg-[#ec4899] disabled:opacity-60 text-white py-3.5 rounded-full font-semibold items-center justify-center gap-2 transition-all shadow-md active:scale-95 text-sm"
               >
                 {sending
-                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending to WhatsApp…</>
-                  : <><MessageCircle className="w-4 h-4" /> Send Order via WhatsApp</>
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Checking & placing order…</>
+                  : <><MessageCircle className="w-4 h-4" />Place your order</>
                 }
               </button>
             </div>
