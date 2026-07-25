@@ -191,6 +191,12 @@ function LineChart({ data }) {
     val: Math.round(t * maxVal),
     y: PAD.top + innerH - t * innerH,
   }));
+   // With many points (e.g. 24 hourly buckets) labels/dots overlap into an
+  // unreadable smear — thin them out to a readable number regardless of
+  // how many points are being plotted.
+  const MAX_LABELS = 8;
+  const labelStep = Math.max(1, Math.ceil(pts.length / MAX_LABELS));
+  const dotRadius = pts.length > 15 ? 2.5 : pts.length > 8 ? 3 : 4;
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto">
       <defs>
@@ -234,21 +240,23 @@ function LineChart({ data }) {
           <circle
             cx={p.x}
             cy={p.y}
-            r="4"
+            r={dotRadius}
             fill="#ec4899"
             stroke="white"
-            strokeWidth="2"
+            strokeWidth={dotRadius > 3 ? 2 : 1}
           />
-          <text
-            x={p.x}
-            y={H - 6}
-            textAnchor="middle"
-            fontSize="9"
-            fill="#9ca3af"
-          >
-            {p.label}
-          </text>
-        </g>
+          {(i % labelStep === 0 || i === pts.length - 1) && (
+            <text
+              x={p.x}
+              y={H - 6}
+              textAnchor="middle"
+              fontSize="9"
+              fill="#9ca3af"
+            >
+              {p.label}
+            </text>
+          )}        
+          </g>
       ))}
     </svg>
   );
@@ -455,26 +463,65 @@ export default function Dashboard() {
   }, [filteredOrders]);
 
   const revenueByDay = useMemo(() => {
-    const map = {};
-    filteredOrders
-      .filter((o) => o.status !== "cancelled")
-      .forEach((o) => {
-        const day = toDateStr(o.createdAt);
-        if (!day) return;
-        map[day] = (map[day] || 0) + o.total;
-      });
-    return Object.entries(map)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-10)
-      .map(([date, val]) => ({
-        label: new Date(date).toLocaleDateString("en-IN", {
-          day: "numeric",
-          month: "short",
-        }),
-        val,
-      }));
-  }, [filteredOrders]);
+    const nonCancelled = filteredOrders.filter((o) => o.status !== "cancelled");
 
+    const isToday = !isCustom && PRESETS[preset].days === 1;
+    if (isToday) {
+      const hourMap = {};
+      nonCancelled.forEach((o) => {
+        const d = toJSDate(o.createdAt);
+        if (!d) return;
+        hourMap[d.getHours()] = (hourMap[d.getHours()] || 0) + o.total;
+      });
+    const nowHour = new Date().getHours();
+      const hours = Array.from({ length: nowHour + 1 }, (_, h) => h);
+      return hours.map((h) => ({
+        label: new Date(2000, 0, 1, h).toLocaleTimeString("en-IN", {
+          hour: "numeric",
+          hour12: true,
+        }),
+        val: hourMap[h] || 0,
+      }));
+    }
+
+    const map = {};
+    nonCancelled.forEach((o) => {
+      const day = toDateStr(o.createdAt);
+      if (!day) return;
+      map[day] = (map[day] || 0) + o.total;
+    });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let rangeStart = fromDate;
+    const rangeEnd = toDate || today;
+
+    if (!rangeStart) {
+      // "All time" (or otherwise unbounded) — fall back to the earliest order on record
+      const allDates = Object.keys(map).sort();
+      rangeStart = allDates.length ? new Date(allDates[0] + "T00:00:00") : today;
+    }
+
+    const days = [];
+    const cursor = new Date(rangeStart);
+    cursor.setHours(0, 0, 0, 0);
+    const end = new Date(rangeEnd);
+    end.setHours(0, 0, 0, 0);
+    while (cursor <= end) {
+      days.push(toDateStr(cursor));
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    // cap to the most recent 30 points so the chart stays readable on long ranges
+    return days.slice(-30).map((date) => ({
+      label: new Date(date + "T00:00:00").toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+      }),
+      val: map[date] || 0,
+    }));
+  }, [filteredOrders, fromDate, toDate, isCustom, preset]);
   const donutSegments = useMemo(() => {
     const counts = {
       delivered: stats.delivered,
@@ -683,7 +730,7 @@ export default function Dashboard() {
                   Revenue Trend
                 </h2>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Daily · {PRESETS[preset].label}
+                  {!isCustom && PRESETS[preset].days === 1 ? "Hourly" : "Daily"} · {PRESETS[preset].label}
                 </p>
               </div>
               <span

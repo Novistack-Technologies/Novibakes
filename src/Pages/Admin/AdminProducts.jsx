@@ -50,9 +50,13 @@ function WeightRow({ w, idx, onChange, onRemove }) {
 function ProductModal({ initial, categories, onClose, onSave, saving }) {
   const [f, setF] = useState(initial ?? EMPTY);
   const [uploading, setUploading] = useState(false);
+  const [errors, setErrors] = useState({});
   const fileRef = useRef();
 
-  const set = (k, v) => setF(prev => ({ ...prev, [k]: v }));
+  const set = (k, v) => {
+  setF(prev => ({ ...prev, [k]: v }));
+  if (errors[k]) setErrors(prev => ({ ...prev, [k]: undefined }));
+};
 
   const handleImg = async e => {
     const file = e.target.files[0];
@@ -62,7 +66,7 @@ function ProductModal({ initial, categories, onClose, onSave, saving }) {
       const { url, publicId } = await uploadToCloudinary(file);
       setF(prev => ({ ...prev, image: url, imagePublicId: publicId }));
     } catch {
-      alert("Image upload failed. Check VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET.");
+      toast.error("Image upload failed. Check VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET.");
     } finally {
       setUploading(false);
     }
@@ -71,16 +75,34 @@ function ProductModal({ initial, categories, onClose, onSave, saving }) {
   const updW = (i, k, v) => {
     const ws = [...f.weights];
     ws[i] = { ...ws[i], [k]: v };
-    set("weights", ws);
+    setF(prev => ({ ...prev, weights: ws }));
+    if (errors.weights) setErrors(prev => ({ ...prev, weights: undefined }));
   };
   const addW = () => set("weights", [...f.weights, { label: "", price: "" }]);
   const remW = i => set("weights", f.weights.filter((_, x) => x !== i));
 
+  const validate = () => {
+    const errs = {};
+    if (!f.name.trim()) errs.name = "Product name is required";
+    if (!f.category) errs.category = "Please select a category";
+    if (!f.description.trim()) errs.description = "Description is required";
+    if (!f.image) errs.image = "Please upload a product image";
+    if (f.rating === "" || f.rating === null || isNaN(f.rating)) errs.rating = "Rating is required";
+    else if (f.rating < 0 || f.rating > 5) errs.rating = "Rating must be between 0 and 5";
+    const validWeights = f.weights.filter(w => w.label.trim() && w.price !== "" && Number(w.price) > 0);
+    if (!validWeights.length) errs.weights = "Add at least one complete weight/price option";
+    return errs;
+  };
   const submit = e => {
     e.preventDefault();
-    if (!f.name.trim()) return alert("Product name is required");
-    if (!f.weights.length) return alert("Add at least one weight/price option");
-    onSave(f);
+    const errs = validate();
+    setErrors(errs);
+    if (Object.keys(errs).length) {
+      toast.error(Object.values(errs)[0]);
+      return;
+    }
+    const validWeights = f.weights.filter(w => w.label.trim() && w.price !== "" && Number(w.price) > 0);
+    onSave({ ...f, weights: validWeights });
   };
 
   return (
@@ -97,9 +119,11 @@ function ProductModal({ initial, categories, onClose, onSave, saving }) {
         <form onSubmit={submit} className="p-6 space-y-4">
           {/* image upload */}
           <div>
-            <label className="text-xs font-semibold text-slate-600 mb-1.5 block">Product Image</label>
+            <label className="text-xs font-semibold text-slate-600 mb-1.5 block">Product Image *</label>
             <div
-              className="relative w-full h-40 rounded-xl border-2 border-dashed border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center cursor-pointer hover:border-pink-300 transition-colors"
+              className={`relative w-full h-40 rounded-xl border-2 border-dashed overflow-hidden bg-gray-50 flex items-center justify-center cursor-pointer transition-colors ${
+                errors.image ? "border-red-300" : "border-gray-200 hover:border-pink-300"
+              }`}
               onClick={() => fileRef.current && fileRef.current.click()}
             >
               {f.image
@@ -117,6 +141,7 @@ function ProductModal({ initial, categories, onClose, onSave, saving }) {
                 </div>
               )}
             </div>
+             {errors.image && <p className="text-[11px] text-red-500 mt-1">{errors.image}</p>}
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImg} />
           </div>
 
@@ -127,45 +152,57 @@ function ProductModal({ initial, categories, onClose, onSave, saving }) {
               <input
                 value={f.name}
                 onChange={e => set("name", e.target.value)}
-                required
+                
                 placeholder="e.g. Chocolate Truffle"
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-300"
+                className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
+                  errors.name ? "border-red-300 focus:ring-red-200" : "border-gray-200 focus:ring-pink-300"
+                }`}
               />
+                {errors.name && <p className="text-[11px] text-red-500 mt-1">{errors.name}</p>}
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-600 mb-1 block">Category *</label>
               <select
                 value={f.category}
                 onChange={e => set("category", e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-300"
-              >
+                className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
+                  errors.category ? "border-red-300 focus:ring-red-200" : "border-gray-200 focus:ring-pink-300"
+                }`}              
+                >
                 <option value="">Select category…</option>
                 {categories.map(c => <option key={c}>{c}</option>)}
               </select>
+              {errors.category && <p className="text-[11px] text-red-500 mt-1">{errors.category}</p>}
             </div>
           </div>
 
           {/* description */}
           <div>
-            <label className="text-xs font-semibold text-slate-600 mb-1 block">Description</label>
+            <label className="text-xs font-semibold text-slate-600 mb-1 block">Description *</label>
             <textarea
               value={f.description}
               onChange={e => set("description", e.target.value)}
               rows={3}
               placeholder="Short product description"
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-pink-300"
-            />
+              className={`w-full px-3 py-2 text-sm border rounded-lg resize-none focus:outline-none focus:ring-2 ${
+                errors.description ? "border-red-300 focus:ring-red-200" : "border-gray-200 focus:ring-pink-300"
+              }`}            
+              />
+             {errors.description && <p className="text-[11px] text-red-500 mt-1">{errors.description}</p>}
           </div>
 
           {/* rating */}
           <div>
-            <label className="text-xs font-semibold text-slate-600 mb-1 block">Rating (0–5)</label>
+            <label className="text-xs font-semibold text-slate-600 mb-1 block">Rating (0–5) *</label>
             <input
               type="number" min="0" max="5" step="0.1"
               value={f.rating}
-              onChange={e => set("rating", parseFloat(e.target.value))}
-              className="w-28 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-300"
-            />
+              onChange={e => set("rating", e.target.value === "" ? "" : parseFloat(e.target.value))}
+              className={`w-28 px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
+                errors.rating ? "border-red-300 focus:ring-red-200" : "border-gray-200 focus:ring-pink-300"
+              }`}            
+              />
+             {errors.rating && <p className="text-[11px] text-red-500 mt-1">{errors.rating}</p>}
           </div>
 
           {/* weights */}
@@ -183,6 +220,7 @@ function ProductModal({ initial, categories, onClose, onSave, saving }) {
             >
               <Plus size={13} /> Add option
             </button>
+              {errors.weights && <p className="text-[11px] text-red-500 mt-1">{errors.weights}</p>}
           </div>
 
           {/* flags */}
